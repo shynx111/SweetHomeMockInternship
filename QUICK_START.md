@@ -34,7 +34,6 @@ provide Java 8 for this architecture.
 
 ## Build and smoke test
 
-Run these commands from the repository root:
 
 ```sh
 mvn -DskipTests package
