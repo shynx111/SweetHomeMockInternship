@@ -109,8 +109,8 @@ public class HomePieceOfFurniture extends HomeObject implements PieceOfFurniture
       });
     SORTABLE_PROPERTY_COMPARATORS.put(SortableProperty.VOLUME, new Comparator<HomePieceOfFurniture>() {
       public int compare(HomePieceOfFurniture piece1, HomePieceOfFurniture piece2) {
-        return HomePieceOfFurniture.compare(piece1.getWidth() * piece1.getHeight() * piece1.getDepth(),
-                piece2.getDepth() * piece2.getHeight() * piece2.getWidth());
+        return HomePieceOfFurniture.compare(piece1.getVolume(),
+                piece2.getVolume());
       }
     });
     SORTABLE_PROPERTY_COMPARATORS.put(SortableProperty.MOVABLE, new Comparator<HomePieceOfFurniture>() {
@@ -553,10 +553,19 @@ public class HomePieceOfFurniture extends HomeObject implements PieceOfFurniture
   }
 
   /**
+   * Returns the volume of this piece of furniture, computed from its
+   * width, depth and height (in cubic centimeters).
+   */
+  public float getVolume() {
+      return getWidth() * getDepth() * getHeight();
+  }
+
+  /**
    * Sets the height of this piece of furniture. Once this piece is updated, 
    * listeners added to this piece will receive a change notification.
    * @throws IllegalStateException if this piece of furniture isn't resizable
    */
+
   public void setHeight(float height) {
     if (isResizable()) {
       if (height != this.height) {

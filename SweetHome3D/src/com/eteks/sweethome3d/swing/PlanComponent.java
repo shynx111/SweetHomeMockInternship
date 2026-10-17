@@ -2002,12 +2002,53 @@ public class PlanComponent extends JComponent implements PlanView, Scrollable, P
     }
     return strokeWidth;
   }
-  
+  /**
+   * Prints this component plan at the scale given in the home print attributes or at a scale
+   * that makes it fill <code>pageFormat</code> imageable size if this attribute is <code>null</code>.
+   */
+  public int print(Graphics g, PageFormat pageFormat, int pageIndex) {
+    List<Level> levels = new ArrayList<Level>();
+    for (Level level : this.home.getLevels()) {
+      if (level.isViewable()) {
+        levels.add(level);
+      }
+    }
+    if (levels.size() <= 1) {
+      return printSelectedLevelPage(g, pageFormat, pageIndex);   // old behavior
+    }
+    int pagesPerLevel = getPrintPagesPerLevel(g, pageFormat);
+    if (pageIndex < 0 || pagesPerLevel <= 0
+            || pageIndex / pagesPerLevel >= levels.size()) {
+      return NO_SUCH_PAGE;
+    }
+    Level initialLevel = this.home.getSelectedLevel();
+    try {
+      this.home.setSelectedLevel(levels.get(pageIndex / pagesPerLevel));
+      return printSelectedLevelPage(g, pageFormat, pageIndex % pagesPerLevel);
+    } finally {
+      this.home.setSelectedLevel(initialLevel);
+    }
+  }
+
+  private int getPrintPagesPerLevel(Graphics g, PageFormat pageFormat) {
+    Rectangle2D bounds = getItemsBounds(g, getPaintedItems());
+    if (bounds == null) {
+      return 0;
+    }
+    if (this.home.getPrint() == null || this.home.getPrint().getPlanScale() == null) {
+      return 1;   // plan is scaled to fit one page
+    }
+    float scale = this.home.getPrint().getPlanScale().floatValue() * LengthUnit.centimeterToInch(72);
+    int pagesPerRow = (int)Math.ceil(bounds.getWidth() * scale / pageFormat.getImageableWidth());
+    int pagesPerColumn = (int)Math.ceil(bounds.getHeight() * scale / pageFormat.getImageableHeight());
+    return Math.max(1, pagesPerRow) * Math.max(1, pagesPerColumn);
+  }
+
   /**
    * Prints this component plan at the scale given in the home print attributes or at a scale 
    * that makes it fill <code>pageFormat</code> imageable size if this attribute is <code>null</code>.
    */
-  public int print(Graphics g, PageFormat pageFormat, int pageIndex) {
+  private int printSelectedLevelPage(Graphics g, PageFormat pageFormat, int pageIndex) {
     List<Selectable> printedItems = getPaintedItems(); 
     Rectangle2D printedItemBounds = getItemsBounds(g, printedItems);
     if (printedItemBounds != null) {
