@@ -173,21 +173,6 @@ public class HomePrintableComponent extends JComponent implements Printable {
       return null;
     }
   }
-// New fields (declare next to printablePages / furniturePageCount / planPageCount)
-// Level shown by each plan page, indexed by (page - furniturePageCount)
-private final List<Level> planPageLevels = new ArrayList<Level>();
-
-  // New helper
-  private List<Level> getPrintedLevels() {
-    List<Level> levels = new ArrayList<Level>();
-    for (Level level : this.home.getLevels()) { // home level order
-      if (level.isViewable()) {
-        levels.add(level);
-      }
-    }
-    return levels;
-  }
-
   /**
    * Prints a given <code>page</code>.
    */
@@ -267,12 +252,7 @@ private final List<Level> planPageLevels = new ArrayList<Level>();
 
           // Retrieve variable values
           int pageNumber = page + 1;
-          int pageCount = getPageCount(); // runs the full dummy pass: fills planPageLevels
-
-          int planPageIndex = page - this.furniturePageCount;
-          if (planPageIndex >= 0 && planPageIndex < this.planPageLevels.size()) {
-            this.home.setSelectedLevel(this.planPageLevels.get(planPageIndex));
-          }
+          int pageCount = getPageCount();
 
           String planScale = "?";
           if (homePrint.getPlanScale() != null) {
@@ -395,43 +375,14 @@ private final List<Level> planPageLevels = new ArrayList<Level>();
       if (pageExists == NO_SUCH_PAGE
               && planView != null
               && (homePrint == null || homePrint.isPlanPrinted())) {
-        int planPage = page - this.furniturePageCount;
-        List<Level> levels = getPrintedLevels();
-        if (levels.isEmpty()) {
-          // Home without levels: original behavior
-          pageExists = ((Printable)planView).print(g2D, pageFormat, planPage);
-          if (pageExists == PAGE_EXISTS
-                  && !this.printablePages.contains(page)) {
-            this.printablePages.add(page);
-            this.planPageCount++;
-          }
-        } else if (planPage >= 0 && planPage < this.planPageLevels.size()) {
-          // Page already discovered: print the right page of its level
-          Level level = this.planPageLevels.get(planPage);
-          int levelPage = planPage - this.planPageLevels.indexOf(level);
-          this.home.setSelectedLevel(level);
-          pageExists = ((Printable)planView).print(g2D, pageFormat, levelPage);
-        } else if (planPage == this.planPageLevels.size()) {
-          // Next undiscovered page: continue the last level, else move to the next level
-          Level last = this.planPageLevels.isEmpty()
-                  ? null : this.planPageLevels.get(this.planPageLevels.size() - 1);
-          int levelIndex = last == null ? 0 : levels.indexOf(last);
-          int levelPage = last == null ? 0 : planPage - this.planPageLevels.indexOf(last);
-          for ( ; levelIndex < levels.size(); levelIndex++, levelPage = 0) {
-            Level level = levels.get(levelIndex);
-            this.home.setSelectedLevel(level);
-            pageExists = ((Printable)planView).print(g2D, pageFormat, levelPage);
-            if (pageExists == PAGE_EXISTS) {
-              this.planPageLevels.add(level);
-              if (!this.printablePages.contains(page)) {
-                this.printablePages.add(page);
-                this.planPageCount++;
-              }
-              break;
-            }
-          }
+          // Try to print next plan view page
+        pageExists = ((Printable)planView).print(g2D, pageFormat, page - this.furniturePageCount);
+        if (pageExists == PAGE_EXISTS
+                && !this.printablePages.contains(page)) {
+          this.printablePages.add(page);
+          this.planPageCount++;
         }
-      }
+        }
       View view3D = this.controller.getHomeController3D().getView();
       if (pageExists == NO_SUCH_PAGE
               && view3D != null
